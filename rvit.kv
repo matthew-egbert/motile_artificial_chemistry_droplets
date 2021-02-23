@@ -1,0 +1,241 @@
+#:kivy 1.0.9
+#:import PointRenderer rvit.core.vis.point_renderer
+#:import LineRenderer rvit.core.vis.line_renderer
+#:import ArrayRenderer rvit.core.vis.array_renderer
+#:import ScalarTracker rvit.core.vis.scalar_tracker
+#:import VectorTracker rvit.core.vis.vector_tracker
+#:import SpriteRenderer rvit.core.vis.sprite_renderer
+#:import RVIButton rvit.core.int.rvi_button
+#:import RVISlider rvit.core.int.rvi_slider
+
+#:import kci kivy.core.image
+
+
+#:set cols 3*6 ## 16
+#:set rows 2*6 ## 12
+#:set col 1./cols
+#:set row 1./rows
+
+#:set but_width 2.0*col
+#:set but_height 0.05
+#:set but_col 1.0-but_width
+
+
+FloatLayout:
+    petri_r: app.model.PETRI_R
+
+    ArrayRenderer:
+        pos_hint: {'x':0.0, 'y': (rows-9)*row}
+        size_hint:  (9*col,9*row)
+        xmin: 0.0
+        xmax: 1.0
+        ymin: 0.0
+        ymax: 1.0
+        array_data: 'env.c[:,:,:]'
+        array_data_preprocess: 'lambda x: x[:,:,::-1]/x.max()'
+        unique_name: 'env' ## oddity: this has to come after everything else
+        show_controls: True
+        click_fn: 'env.clicked_at'
+
+        
+    LineRenderer:
+        radius: 1.
+        pos_hint: {'x':0.0, 'y': (rows-9)*row}
+        size_hint:  (9*col,9*row)
+        xmin: -self.parent.petri_r
+        xmax: self.parent.petri_r
+        ymin: -self.parent.petri_r
+        ymax: self.parent.petri_r
+        x_data: 'drawing.c_rings[:,:,:,0]'
+        y_data: 'drawing.c_rings[:,:,:,1]'
+        color1d_data: 'drawing.c_ring_colors'
+        x_data_preprocess: 'lambda x: np.ravel(x)'
+        y_data_preprocess: 'lambda x: np.ravel(x)'
+        indices: 'drawing.c_ring_indices'
+        unique_name: 'individual_position' ## oddity: this has to come after everything else
+        show_controls: False
+
+    LineRenderer:
+        radius: 1.
+        pos_hint: {'x':0.0, 'y': (rows-9)*row}
+        size_hint:  (9*col,9*row)
+        xmin: -self.parent.petri_r
+        xmax: self.parent.petri_r
+        ymin: -self.parent.petri_r
+        ymax: self.parent.petri_r
+        x_data: 'drawing.f_lines[:,:,0]'
+        y_data: 'drawing.f_lines[:,:,1]'
+        # color1d_data: 'drawing.c_ring_colors'
+        x_data_preprocess: 'lambda x: np.ravel(x)'
+        y_data_preprocess: 'lambda x: np.ravel(x)'
+        #indices: 'drawing.c_ring_indices'
+        unique_name: 'flow_lines' ## oddity: this has to come after everything else
+        show_controls: False
+        
+    VectorTracker:
+        radius: 1.
+        pos_hint: {'x':0.0, 'y':0.0}
+        size_hint:  (9*col,(rows-9)*row)
+        y_vector: 'inds[0].surface_tension' ## variable to track and plot
+        #y_vector_preprocess: 'lambda x: x/x.max()'
+        gradient: 'plasma'
+        vmin: 0.0
+        vmax: 1.0
+        fill: 'columns'
+        column_gap: 0.5
+        show_controls: True
+        unique_name: 'surface_tension'
+        # xmin: -0.0
+        # xmax: 1.0
+        # ymin: 0.0
+        # ymax: 1.0
+        # x_data: 'inds[0].surface_tension_x'
+        # y_data: 'inds[0].surface_tension'
+        # # color1d_data: 'drawing.c_ring_colors'
+        # # x_data_preprocess: 'lambda x: np.ravel(x)'
+        # # y_data_preprocess: 'lambda x: np.ravel(x)'
+        # # indices: 'drawing.c_ring_indices'
+        # unique_name: 'surface tension' ## oddity: this has to come after everything else
+        # show_controls: True
+
+    ScalarTracker:
+        pos_hint: {'x':9*col, 'y':0.0}
+        size_hint:  (5*col,3.0*row)
+        y_scalar: 'inds[0].st_diff' ## variable to track and plot
+        gradient: 'plasma'
+        show_controls: True
+        # fps: 100
+        unique_name: 'surf_ten_mag'
+
+        
+    RVIButton:
+        pos_hint: {'x':but_col,'y':0.9}
+        size_hint: (but_width,0.1)
+        background_color: (1,1,0,1)
+        text: 'plot'
+        function: 'inds[0].plot_summary()'
+        #on_press: lambda x: 0.0
+
+    RVIButton:
+        pos_hint: {'x':but_col ,'y':0.8}
+        size_hint: (but_width,0.1)
+        background_color: (1,1,0,1)
+        text: 'plot_surface'
+        function: 'inds[0].plot_surface()'
+        #on_press: lambda x: 0.0
+
+    RVIButton:
+        pos_hint: {'x':but_col,'y':0.6}
+        size_hint: (but_width/2,but_height)
+        background_color: (1,0,0,1)
+        text: 'exp 0'
+        function: 'set_experiment(0)'
+
+    RVIButton:
+        pos_hint: {'x':but_col,'y':0.55}
+        size_hint: (but_width/2,but_height)
+        background_color: (1,0,0,1)
+        text: 'exp 1'
+        function: 'set_experiment(1)'
+        
+    RVIButton:
+        pos_hint: {'x':but_col,'y':0.5}
+        size_hint: (but_width/2,but_height)
+        background_color: (1,0,0,1)
+        text: 'exp 2'
+        function: 'set_experiment(2)'
+
+    RVIButton:
+        pos_hint: {'x':but_col,'y':0.45}
+        size_hint: (but_width/2,but_height)
+        background_color: (1,0,0,1)
+        text: 'exp 3'
+        function: 'set_experiment(3)'
+
+    RVIButton:
+        pos_hint: {'x':but_col+but_width/2,'y':0.6}
+        size_hint: (but_width/2,but_height)
+        background_color: (1,0,1,1)
+        text: 'exp 4'
+        function: 'set_experiment(4)'
+        
+    RVIButton:
+        pos_hint: {'x':but_col+but_width/2,'y':0.55}
+        size_hint: (but_width/2,but_height)
+        background_color: (1,0,1,1)
+        text: 'exp 5'
+        function: 'set_experiment(5)'
+
+    RVIButton:
+        pos_hint: {'x':but_col+but_width/2,'y':0.5}
+        size_hint: (but_width/2,but_height)
+        background_color: (1,0,1,1)
+        text: 'exp 6'
+        function: 'set_experiment(6)'
+        
+    RVIButton:
+        pos_hint: {'x':but_col+but_width/2,'y':0.45}
+        size_hint: (but_width/2,but_height)
+        background_color: (1,0,1,1)
+        text: 'exp 7'
+        function: 'set_experiment(7)'
+
+    RVIButton:
+        pos_hint: {'x':but_col,'y':0.4}
+        size_hint: (but_width,but_height)
+        background_color: (0,1,1,1)
+        text: 'UV Exp.'
+        function: 'set_experiment(9)'
+        
+    RVIButton:
+        pos_hint: {'x':but_col,'y':0.0}
+        size_hint: (but_width,0.1)
+        background_color: (1,1,1,1)
+        text: 'Plot Scene'
+        function: 'plot_scene(show_plot=True)'
+        
+    RVISlider:
+        pos_hint: {'x':9*col ,'y':8*row}
+        size_hint: (1*col,4*row)
+        orientation: 'vertical'
+        slider_min: 0.0
+        slider_max: 1.0
+        slider_index: 0
+        show_controls: False
+        scalar: 'p1'
+        unique_name: 'p1'
+
+    RVISlider:
+        pos_hint: {'x':10*col ,'y':8*row}
+        size_hint: (1*col,4*row)
+        orientation: 'vertical'
+        slider_min: 0.0
+        slider_max: 1.0
+        slider_index: 0
+        show_controls: False
+        scalar: 'p2'
+        unique_name: 'p2'
+
+    # ScalarTracker:
+    #     pos_hint: {'x':9*col, 'y':3.0*row}
+    #     size_hint:  (5*col,1.0*row)
+    #     y_scalar: 'inds[0].sections[0].concentrations[1]' ## variable to track and plot
+    #     gradient: 'plasma'
+    #     show_controls: True
+    #     # fps: 100
+    #     unique_name: 'V0'
+
+    # ScalarTracker:
+    #     pos_hint: {'x':9*col, 'y':4.0*row}
+    #     size_hint:  (5*col,1.0*row)
+    #     y_scalar: "inds[0].sections[24].concentrations['v']" ## variable to track and plot
+    #     gradient: 'plasma'
+    #     show_controls: True
+    #     # fps: 100
+    #     unique_name: 'VPI'
+        
+
+# ### Local Variables: ###
+# ### mode: python ###
+# ### python-main-file: "main.py" ###
+# ### End: ###

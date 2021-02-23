@@ -1,0 +1,237 @@
+        ## we normalize the surface tension so as to avoid numerical
+        ## issues. The normalization factor s_N will be used to scale
+        ## the overall convective flow magnitude, such that the larger s_N,
+        ## the greater the overall flow -- right?
+        s_N = max(st)-min(st)
+        print(f's_N : {s_N}') ## this should decrease with time as the system comes to eq.
+        # if s_N > 0.0:
+        #     st /= s_N
+
+import numpy as np
+from molecule import Molecule
+from collections import defaultdict
+import itertools
+
+# def selectOne(self, population):
+#     max = sum([c.fitness for c in population])
+#     selection_probs = [c.fitness/max for c in population]
+#     return population[npr.choice(len(population), p=selection_probs)]
+
+
+def selectOne(self, population):
+    max = sum([c.fitness for c in population])
+    selection_probs = [c.fitness/max for c in population]
+    return population[npr.choice(len(population), p=selection_probs)]
+
+class Reaction(object):
+    def __init__(self,
+                 a : Molecule, b: Molecule,
+                 c : Molecule, d: Molecule):
+        self.a = a
+        self.b = b
+        self.c = c
+        self.d = d
+
+class Chemistry(object):
+    def __init__(self):
+        def constant_factory(value):
+            return lambda: value
+        self.concentrations = defaultdict(constant_factory(0))
+        self.molecules = {}
+
+        ## add "food set" molecules
+        self.food_set = [
+            Molecule(atom_string=  'aab', G=1.0),
+            Molecule(atom_string= 'aaab',G=1.0),
+            Molecule(atom_string= 'aabb',G=1.0),
+            Molecule(atom_string= 'bbbb',G=1.0),
+            Molecule(atom_string='aaaab',G=1.0),
+            Molecule(atom_string='aaabb',G=1.0),
+            Molecule(atom_string='aabbb',G=1.0),
+        ]
+        for food_molecule in self.food_set:
+            self.add_molecule(molecule=food_molecule,concentration = 100.0)
+
+        # specify "growth set" molecules (none present at start, but
+        # the values should be set so as to not arise randomly)
+        self.growth_set = [
+            Molecule(atom_string=     'ba',G=5.0),
+            Molecule(atom_string=    'abb',G=0.1),
+            Molecule(atom_string=   'abbb',G=0.01),
+            Molecule(atom_string=  'abbbb',G=1.0),
+            Molecule(atom_string= 'abbbbb',G=2.0),
+            Molecule(atom_string='abbbbbb',G=3.0),
+        ]
+        for growth_molecule in self.growth_set:
+            # self.concentrations[growth_molecule] = 0.0
+            # self.molecules[growth_molecule.atom_string] = growth_molecule
+            self.add_molecule(molecule = growth_molecule,concentration = 0.0)
+
+        self.reactions = []
+
+
+    def get_growth(self):
+        return sum([self.concentrations[m] for m in self.growth_set])
+
+
+    # def add_molecule(self,atom_string=None,G=None,concentration=0.0,
+    #                  molecule : Molecule=None):
+    #     if molecule != None:
+    #         self.concentrations[molecule] = concentration
+    #         self.molecules[molecule.atom_string] = molecule
+    #     else:
+    #         print(atom_string)
+    #         m = Molecule(atom_string=atom_string,G=G)
+    #         self.add_molecule(m)
+
+    def add_molecule(self,molecule : Molecule,concentration=0.0):
+        self.concentrations[molecule] = concentration
+        self.molecules[molecule.atom_string] = molecule
+    
+    def generate_avalanche(self):
+        NUM_LOW_PROPENSITY_REACTIONS = 1
+        PROB_HIGH_FLUX = 0.1
+        # 0: for N = 0 to num_low_propensity_reactions.
+        self.new_species = []
+        for rxn_i in range(NUM_LOW_PROPENSITY_REACTIONS) :
+            pass
+            # 1: Choose two existing species (r1, r2) to react in a low
+            # propensity reaction (kf~0, kb~0) to produce two potential
+            # products p1 and p2.
+            r1,r2 = np.random.choice( list(self.molecules.values()),2 )
+            lhs_total_G = r1.G + r2.G
+
+            ## generate p1 and p2 as a random recombination of the
+            ## reactants
+            reactant_atoms = ''.join(r1.atom_string+r2.atom_string)
+
+            n_atoms_in_p1 = np.random.randint(1,len(reactant_atoms))
+            n_atoms_in_p2 = len(reactant_atoms) - n_atoms_in_p1
+            assert(n_atoms_in_p2 > 0)
+            assert(n_atoms_in_p1 > 0)
+
+            l = list(reactant_atoms)
+            np.random.shuffle(l)
+
+            p1_atom_string = ''.join(l[:n_atoms_in_p1])
+            p2_atom_string = ''.join(l[n_atoms_in_p1:])
+            
+            if p1_atom_string in self.molecules.keys():
+                p1 = self.molecules[p1_atom_string]
+            else:
+                p1 = None
+
+            if p2_atom_string in self.molecules.keys():
+                p2 = self.molecules[p2_atom_string]
+            else:
+                p2 = None
+
+            # 2: Generate the free energies of p1 and p2 (if they don’t
+            # already exist) so that the following relation holds,
+            # G p1 +G p2 +heat 1⁄4 G r1 +G r2 , by portioning energies
+            # according to a uniform random distribution, heat being
+            # positive.
+            # 3: if it is not possible to satisfy this relation, e.g. because
+            # G p1 4G r1 +G r2 , then the reaction is not permitted, and no
+            # new products are created.
+
+            reaction_possible = True
+            if p1 is None and p2 is None:
+                x = np.random.rand() * lhs_total_G # split the energy
+                y = np.random.rand() * lhs_total_G # at these points   
+                a = min(x,y)
+                b = max(x,y)-a
+                c = total-max(x,y)
+                
+                heat = a
+                p1_G = b
+                p2_G = c
+                
+                p1 = Molecule(atom_string=p1_atom_string,G=p1_G)
+                p2 = Molecule(atom_string=p2_atom_string,G=p2_G)
+                assert(p1_G > 0.0)
+                assert(p2_G > 0.0)
+                self.new_species.append(p1)
+                self.new_species.append(p2)
+            elif p1 is not None and p2 is None:
+                p1 = self.molecules[p1_atom_string]
+                p1_G = p1.G
+                if p1_G >= lhs_total_G:
+                    ## Reaction is thermodynamically impossible as
+                    ## product is higher G than all reactants.
+                    ## (Step 3)
+                    reaction_possible = False
+                    break
+                remaining_G = lhs_total_G - p1_G
+                p2_G = np.random.rand()*remaining_G
+                heat = (remaining_G - p2_G)
+                p2 = Molecule(atom_string=p2_atom_string,G=p2_G)
+                # print('%f %f %f : %f' %(p1_G, p2_G, heat, lhs_total_G))
+                assert(p2_G > 0.0)
+                self.new_species.append(p2)
+            elif p1 is None and p2 is not None:
+                p2 = self.molecules[p2_atom_string]
+                p2_G = p2.G
+                if p2_G >= lhs_total_G:
+                    ## Reaction is thermodynamically impossible as
+                    ## product is higher G than all reactants.
+                    ## (Step 3)
+                    reaction_possible = False
+                    break
+                remaining_G = lhs_total_G - p2_G
+                p1_G = np.random.rand()*remaining_G
+                heat = (remaining_G - p1_G)
+                p1 = Molecule(atom_string=p1_atom_string,G=p1_G)
+                # print('%f %f %f : %f' %(p1_G, p2_G, heat, lhs_total_G))
+                assert(p1_G > 0.0)
+                self.new_species.append(p1)
+
+            if reaction_possible:
+                # 4: else if the condition that the reaction is spontaneous can
+                # be satisfied, create novel products at low concentration
+                # (e.g. 10E-7 M) and increment newSpec ++ //Store the
+                # number of novel species produced.
+                for m in self.new_species:
+                    self.add_molecule(m,concentration=1E-4)
+                    # 5: k_f=0 k_b = 0. //Novel products come to
+                    # existence at low concentration and are not
+                    # produced, nor decay. MDE: I understand this to
+                    # be saying "this reaction is so slow / unlikely,
+                    # we consider it to be a one-off event" and do not
+                    # create a new "reaction" to simulate it ever
+                    # happening again. Molecules will only stick
+                    # around if they come to exist by other means.
+                    
+        # end for n = 0 to num_low_propensity_reactions
+        # 8: while newSpec != 1 do
+        
+        # 9: for i = 0 to newSpec
+        # 10: for j = 0 to number of species currently existing
+        # 11: if rand()oprob_high_flux x 1/(species[i].length)^2
+        # 12: tempNewSpecies 1⁄4 output of Algorithm 3
+        # //Make high flux reaction with new
+        # species[i] and a random species
+        # 13:
+        # end if
+        # 14:
+        # end for
+        # 15: end for
+        # 16: newSpec 1⁄4 tempNewSpecies, tempNewSpecies 1⁄4 0.
+        # 17: end while
+
+    def __repr__(self):
+        s = ''
+        total_volume = 0.0
+        for key,value in self.concentrations.items():
+            s+= '%s: ' %(key.atom_string.rjust(10))
+            s+= ('%0.3f mM\n'%(value)).rjust(13)
+            total_volume += value
+        s = 'Total volume: %f\n' %(total_volume) + \
+            'Total growth: %f\n' %(self.get_growth()) + s
+        return s
+
+c = Chemistry()
+    
+while True:
+    c.generate_avalanche()
+    print(c)

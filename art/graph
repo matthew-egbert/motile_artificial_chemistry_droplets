@@ -1,0 +1,21 @@
+// chem
+digraph {
+	"x
+(0.902166)" [label=<<b>x</b><br/>G:0.90<br/>[0.38]> color="0.5 0.0 0.3" fontname=roboto fontsize=12 shape=circle style=filled]
+	"xx
+(0.764470)" [label=<<b>xx</b><br/>G:0.76<br/>[1.14]> fillcolor=gold fontname=roboto fontsize=12 shape=rect style=filled]
+	"oh
+(0.723422)" [label=<<b>oh</b><br/>G:0.72<br/>[1.00]> fillcolor=gold fontname=roboto fontsize=12 shape=rect style=filled]
+	"xx+oh<-->x+x" [shape=point]
+	"xx+oh<-->x+x" -> "xx
+(0.764470)" [arrowhead=inv]
+	"xx+oh<-->x+x" -> "oh
+(0.723422)" [arrowhead=inv]
+	"xx+oh<-->x+x" -> "x
+(0.902166)"
+	"xx+oh<-->x+x" -> "x
+(0.902166)"
+	"x<-->" [shape=point]
+	"x<-->" -> "x
+(0.902166)" [arrowhead=inv]
+}
